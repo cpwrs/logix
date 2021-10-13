@@ -14,7 +14,7 @@ class Home:
         self.root = root
 
         self.frame = tk.Frame(self.window)
-        self.open_button = tk.Button(self.frame, text = 'Open Editor', width = 25, command = self.open_editor)
+        self.open_button = tk.Button(self.frame, text = 'Open Editor', height = 1, width = 25, command = self.open_editor)
 
         self.open_button.pack()
         self.frame.pack()
@@ -28,14 +28,19 @@ class Editor:
     def __init__(self, root, window):
         self.window = window
         self.root = root
-
-        self.window.geometry("750x500")
+        self.window.attributes("-fullscreen", True)
 
         #Create Sidebar and Diagram
-        self.sidebar = tk.LabelFrame(self.window, text="Gates", width=150)
+        self.sidebar = tk.LabelFrame(self.window, text="Gates")
         self.frame = tk.LabelFrame(self.window, text="Diagram")
         self.diagram = tk.Canvas(self.frame, bg = "Black")
-        self.button = tk.Button(self.sidebar, text = "Gate", height = 1, command = self.button_press)
+
+        #Create all sidebar buttons
+        button_titles = ["and", "or", "not", "nor", "nand", "xor", "xnor", "buffer"]
+        self.buttons = []
+        for title in button_titles:
+            button = tk.Button(self.sidebar, text = title, height = 1, width = 10, command = self.button_controller)
+            self.buttons.append(button)
         
         #Bind canvas to zoom/pan options
         self.diagram.bind("<MouseWheel>", self.do_zoom)
@@ -50,12 +55,14 @@ class Editor:
         self.frame.columnconfigure(0, weight=1)
 
         #Add widgets to grid
-        self.button.grid(row = 0, column = 0, sticky = "EW")
+        for i in range(len(self.buttons)):
+            self.buttons[i].grid(row = i, column = 0, sticky = "EW")
+
         self.diagram.grid(row = 0, column = 0, sticky = "NSEW")
         self.sidebar.grid(row = 0, column = 0, sticky = "NS")
         self.frame.grid(row = 0, column = 1, sticky = "NSEW")
 
-    def button_press(self):
+    def button_controller(self):
         print(os.getcwd())
         img = ImageTk.PhotoImage(Image.open("circle.png"))
         self.diagram.create_image(20, 20, image = img)
