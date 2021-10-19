@@ -48,6 +48,8 @@ class Editor:
         #Create table to hold each tk button, loaded_assets to load image for each type of object once
         #loaded_assets avoids garbage collection
         self.buttons = []
+        self.objects = []
+        self.object_grabbed = False
         self.loaded_assets = {}
 
         #For each object, create its tk button, load its image asset, bind to handler, and append to list of buttons
@@ -55,7 +57,7 @@ class Editor:
             #Load asset
             filename = self.button_data["gates"][title]["asset"]
             dimensions = self.button_data["gates"][title]["dimensions"]
-            
+
             asset = ImageTk.PhotoImage(Image.open(filename).resize(dimensions))
             self.loaded_assets[title] = asset
 
@@ -67,14 +69,14 @@ class Editor:
 
         #Bind canvas to zoom/pan options
         self.diagram.bind("<MouseWheel>", self.do_zoom)
-        self.diagram.bind('<ButtonPress-1>', lambda event: self.diagram.scan_mark(event.x, event.y))
-        self.diagram.bind("<B1-Motion>", lambda event: self.diagram.scan_dragto(event.x, event.y, gain=1))
+        self.diagram.bind('<ButtonPress-1>', self.down_handler)
+        self.diagram.bind("<B1-Motion>", self.move_handler)
 
 
         #Configure grid scaling
         self.window.rowconfigure(0, weight=1)
-        self.window.columnconfigure(1, weight=1)
-        self.sidebar.columnconfigure(0,weight=1)
+        self.window.columnconfigure(1, weight= 1)
+        self.sidebar.columnconfigure(0,weight = 1)
         self.frame.rowconfigure(0, weight=1)
         self.frame.columnconfigure(0, weight=1)
 
@@ -88,9 +90,46 @@ class Editor:
 
 
     def gate_handler(self, event):
+        #Create image on canvas
         title = event.widget['text']
-        self.diagram.create_image(20, 20, image = self.loaded_assets[title])
+        gate = self.diagram.create_image(20, 20, image = self.loaded_assets[title])
+        #Add to list of canvas objects
+        self.objects.append(gate)
+        #Move image to top layer
+        self.diagram.tag_raise(gate)
 
+    
+    def grabbing_object(self, x, y):
+        #Loop through each objects, newest to oldest (Top to bottom layer)
+        for object in reversed(self.objects):
+            #Get object coordinates
+            coords = self.diagram.bbox(object)
+            x1, y1, x2, y2 = coords
+
+            #See if mouse position is inside these coordinates
+            if((x1 < x and x < x2) and (y1 < y and y < y2)):
+                self.object_grabbed = object
+                print("Test")
+                return True
+        self.object_grabbed = False
+        return False
+
+    def down_handler(self, event):
+        x, y = event.x, event.y
+        if(self.grabbing_object(x, y)):
+            self.grab_coords = [x, y]
+        else:
+            self.diagram.scan_mark(x, y)
+
+    def move_handler(self, event):
+        if(self.object_grabbed):
+            diff_x = event.x - self.grab_coords[0]
+            diff_y = event.y - self.grab_coords[1]
+            self.grab_coords = [event.x, event.y]
+            self.diagram.move(self.object_grabbed, diff_x, diff_y)
+        else:
+            self.diagram.scan_dragto(event.x, event.y, gain=1)
+    
 
     def do_zoom(self, event):
             x = self.diagram.canvasx(event.x)
