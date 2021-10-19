@@ -26,6 +26,8 @@ class Home:
         self.newWindow = tk.Toplevel(self.root)
         self.app = Editor(self.root, self.newWindow)
 
+
+
 class Editor:
     def __init__(self, root, window):
         self.window = window
@@ -50,13 +52,11 @@ class Editor:
 
         #For each object, create its tk button, load its image asset, bind to handler, and append to list of buttons
         for title in self.button_data["gates"]:
-            asset = ImageTk.PhotoImage(Image.open(self.button_data["gates"][title]["asset"]))
-            self.loaded_assets[title] = asset
-
-        #For each type of object, create its tk button, bind to handler, and append to list of all buttons
-        for title in self.button_data["gates"]:
             #Load asset
-            asset = ImageTk.PhotoImage(Image.open(self.button_data["gates"][title]["asset"]))
+            filename = self.button_data["gates"][title]["asset"]
+            dimensions = self.button_data["gates"][title]["dimensions"]
+            
+            asset = ImageTk.PhotoImage(Image.open(filename).resize(dimensions))
             self.loaded_assets[title] = asset
 
             #Create button
@@ -86,9 +86,11 @@ class Editor:
         self.sidebar.grid(row = 0, column = 0, sticky = "NS")
         self.frame.grid(row = 0, column = 1, sticky = "NSEW")
 
+
     def gate_handler(self, event):
         title = event.widget['text']
         self.diagram.create_image(20, 20, image = self.loaded_assets[title])
+
 
     def do_zoom(self, event):
             x = self.diagram.canvasx(event.x)
