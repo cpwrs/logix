@@ -30,25 +30,46 @@ class Editor:
     def __init__(self, root, window):
         self.window = window
         self.root = root
+        #Create window of size 750x750
         self.window.geometry("750x750")
 
-        #Create Sidebar and Diagram
+        #Create Sidebar and Diagram (Frame just holds the Canvas inside it)
         self.sidebar = tk.LabelFrame(self.window, text="Gates")
         self.frame = tk.LabelFrame(self.window, text="Diagram")
         self.diagram = tk.Canvas(self.frame, bg = "Black")
 
-        #Create all sidebar buttons
-        self.button_data = json.load(open("src/sidebar.json"))
-        self.buttons = []
 
+        #Create all sidebar buttons - load one asset for each object type
+        #Load data regarding the buttons names and assets from json file
+        self.button_data = json.load(open("src/sidebar.json"))
+        
+        #Create table to hold each tk button, loaded_assets to load image for each type of object once
+        #loaded_assets avoids garbage collection
+        self.buttons = []
+        self.loaded_assets = {}
+
+        #For each object, create its tk button, load its image asset, bind to handler, and append to list of buttons
         for title in self.button_data["gates"]:
-            button = tk.Button(self.sidebar, text = title, height = 1, width = 10, command = self.gate_controller(title))
+            asset = ImageTk.PhotoImage(Image.open(self.button_data["gates"][title]["asset"]))
+            self.loaded_assets[title] = asset
+
+        #For each type of object, create its tk button, bind to handler, and append to list of all buttons
+        for title in self.button_data["gates"]:
+            #Load asset
+            asset = ImageTk.PhotoImage(Image.open(self.button_data["gates"][title]["asset"]))
+            self.loaded_assets[title] = asset
+
+            #Create button
+            button = tk.Button(self.sidebar, text = title, height = 1, width = 10)
+            button.bind("<ButtonPress-1>", self.gate_handler)
             self.buttons.append(button)
         
+
         #Bind canvas to zoom/pan options
         self.diagram.bind("<MouseWheel>", self.do_zoom)
         self.diagram.bind('<ButtonPress-1>', lambda event: self.diagram.scan_mark(event.x, event.y))
         self.diagram.bind("<B1-Motion>", lambda event: self.diagram.scan_dragto(event.x, event.y, gain=1))
+
 
         #Configure grid scaling
         self.window.rowconfigure(0, weight=1)
@@ -60,15 +81,14 @@ class Editor:
         #Add buttons to sidebar grid
         for i in range(len(self.buttons)):
             self.buttons[i].grid(row = i, column = 0, sticky = "EW")
-
+        #Add all other widgets to grid
         self.diagram.grid(row = 0, column = 0, sticky = "NSEW")
         self.sidebar.grid(row = 0, column = 0, sticky = "NS")
         self.frame.grid(row = 0, column = 1, sticky = "NSEW")
 
-    def gate_controller(self, title):
-        gate = self.button_data["gates"][title]
-        asset = ImageTk.PhotoImage(Image.open(self.button_data["gates"][title]["asset"]))
-        self.diagram.create_image(20, 20, image = asset)
+    def gate_handler(self, event):
+        title = event.widget['text']
+        self.diagram.create_image(20, 20, image = self.loaded_assets[title])
 
     def do_zoom(self, event):
             x = self.diagram.canvasx(event.x)
@@ -78,6 +98,7 @@ class Editor:
         
 def main():
     root = tk.Tk()
+    #Don't display root, allows only one window to be open at a time
     root.withdraw()
     window = tk.Toplevel(root)
     app = Home(root, window)
