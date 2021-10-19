@@ -6,7 +6,9 @@ Author: Carson Powers
 
 import tkinter as tk
 from PIL import ImageTk, Image
+import json
 import os
+
 
 class Home:
     def __init__(self, root, window):
@@ -28,7 +30,7 @@ class Editor:
     def __init__(self, root, window):
         self.window = window
         self.root = root
-        self.window.attributes("-fullscreen", True)
+        self.window.geometry("750x750")
 
         #Create Sidebar and Diagram
         self.sidebar = tk.LabelFrame(self.window, text="Gates")
@@ -36,10 +38,11 @@ class Editor:
         self.diagram = tk.Canvas(self.frame, bg = "Black")
 
         #Create all sidebar buttons
-        button_titles = ["and", "or", "not", "nor", "nand", "xor", "xnor", "buffer"]
+        self.button_data = json.load(open("src/sidebar.json"))
         self.buttons = []
-        for title in button_titles:
-            button = tk.Button(self.sidebar, text = title, height = 1, width = 10, command = self.button_controller)
+
+        for title in self.button_data["gates"]:
+            button = tk.Button(self.sidebar, text = title, height = 1, width = 10, command = self.gate_controller(title))
             self.buttons.append(button)
         
         #Bind canvas to zoom/pan options
@@ -54,7 +57,7 @@ class Editor:
         self.frame.rowconfigure(0, weight=1)
         self.frame.columnconfigure(0, weight=1)
 
-        #Add widgets to grid
+        #Add buttons to sidebar grid
         for i in range(len(self.buttons)):
             self.buttons[i].grid(row = i, column = 0, sticky = "EW")
 
@@ -62,12 +65,11 @@ class Editor:
         self.sidebar.grid(row = 0, column = 0, sticky = "NS")
         self.frame.grid(row = 0, column = 1, sticky = "NSEW")
 
-    def button_controller(self):
-        print(os.getcwd())
-        img = ImageTk.PhotoImage(Image.open("circle.png"))
-        self.diagram.create_image(20, 20, image = img)
-        self.diagram.image = img
-    
+    def gate_controller(self, title):
+        gate = self.button_data["gates"][title]
+        asset = ImageTk.PhotoImage(Image.open(self.button_data["gates"][title]["asset"]))
+        self.diagram.create_image(20, 20, image = asset)
+
     def do_zoom(self, event):
             x = self.diagram.canvasx(event.x)
             y = self.diagram.canvasy(event.y)
