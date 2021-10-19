@@ -1,0 +1,36 @@
+{
+    "gates": {
+        "or": {
+            "asset": "circle.png",
+            "dimensions": [10, 10]
+        },
+        "and": {
+            "asset": "circle.png",
+            "dimensions": [10, 10]
+        },
+        "nor": {
+            "asset": "circle.png",
+            "dimensions": [10, 10]
+        },
+        "nand": {
+            "asset": "circle.png",
+            "dimensions": [10, 10]
+        },
+        "xor": {
+            "asset": "circle.png",
+            "dimensions": [10, 10]
+        },
+        "xnor": {
+            "asset": "circle.png",
+            "dimensions": [10, 10]
+        },
+        "not": {
+            "asset": "circle.png",
+            "dimensions": [10, 10]
+        },
+        "buffer": {
+            "asset": "circle.png",
+            "dimensions": [10, 10]
+        }
+    }
+}
