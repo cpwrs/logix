@@ -14,7 +14,7 @@ from PIL import ImageTk, Image
 
 
 class Home:
-    """A class to reporesent the home window of the logix application."""
+    """A class to represent the home window of the logix application."""
     
     def __init__(self, root, window):
         """Construct Home window widgets."""
@@ -116,7 +116,6 @@ class Editor:
         self.diagram.tag_raise(gate)
 
     
-    # Determines whether the mouse is clicking down on an object, sets self.object_grabbed and returns value
     def is_grabbing_object(self, x, y):
         """
         Determine if (x,y) is within coordinates bounding an object on the diagram.
@@ -148,7 +147,6 @@ class Editor:
         return False
 
 
-    # Handles any ButtonPress-1 on the diagram
     def down_handler(self, event):
         """
         Handle ButtonPress-1 event and retrieve coordinates of event. 
@@ -166,7 +164,6 @@ class Editor:
         else:
             # Set starting point of canvas pan
             self.diagram.scan_mark(event.x, event.y) #Doesn't need converted coordinates
-
 
 
     def move_handler(self, event):
