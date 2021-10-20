@@ -55,7 +55,7 @@ class Editor:
         #Create Sidebar and Diagram (Frame just holds the Canvas inside it)
         self.sidebar = tk.LabelFrame(self.window, text="Gates") #Sidebar holds buttons for all the objects you can add to the diagram
         self.frame = tk.LabelFrame(self.window, text="Diagram") #Frame holds the canvas
-        self.diagram = tk.Canvas(self.frame, bg = "Black") #Diagram is a canvas which contains all the entire logic gate simulation
+        self.diagram = tk.Canvas(self.frame, bg = "#808080") #Diagram is a canvas which contains all the entire logic gate simulation
 
         #Create all sidebar buttons - load one asset for each object type
         #Load data regarding the buttons names and assets from json file

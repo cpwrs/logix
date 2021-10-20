@@ -1,36 +1,36 @@
 {
     "gates": {
         "or": {
-            "asset": "circle.png",
-            "dimensions": [20, 20]
+            "asset": "assets/or.png",
+            "dimensions": [83, 50]
         },
         "and": {
-            "asset": "circle.png",
-            "dimensions": [20, 20]
+            "asset": "assets/and.png",
+            "dimensions": [83, 50]
         },
         "nor": {
-            "asset": "circle.png",
-            "dimensions": [20, 20]
+            "asset": "assets/nor.png",
+            "dimensions": [83, 50]
         },
         "nand": {
-            "asset": "circle.png",
-            "dimensions": [20, 20]
+            "asset": "assets/nand.png",
+            "dimensions": [83, 50]
         },
         "xor": {
-            "asset": "circle.png",
-            "dimensions": [20, 20]
+            "asset": "assets/xor.png",
+            "dimensions": [83, 50]
         },
         "xnor": {
-            "asset": "circle.png",
-            "dimensions": [20, 20]
+            "asset": "assets/xnor.png",
+            "dimensions": [83, 50]
         },
         "not": {
-            "asset": "circle.png",
-            "dimensions": [20, 20]
+            "asset": "assets/not.png",
+            "dimensions": [83, 50]
         },
         "buffer": {
-            "asset": "circle.png",
-            "dimensions": [20, 20]
+            "asset": "assets/buffer.png",
+            "dimensions": [83, 50]
         }
     }
 }
