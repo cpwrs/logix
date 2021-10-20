@@ -125,7 +125,6 @@ class Editor:
             #See if mouse position is inside these coordinates
             if((x1 < x and x < x2) and (y1 < y and y < y2)):
                 self.object_grabbed = object
-                print("Test")
                 return True
 
         self.object_grabbed = False
@@ -139,7 +138,7 @@ class Editor:
         y = int(self.diagram.canvasy(event.y))
 
         #Check if clicking down on an object
-        if(self.grabbing_object(x, y)):
+        if(self.is_grabbing_object(x, y)):
             #Set starting point of object drag
             self.drag_x = x 
             self.drag_y = y
