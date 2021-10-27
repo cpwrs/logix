@@ -1,0 +1,10 @@
+{
+    "gates": {
+        "gate_types": {"or": 2, "and": 2, "nor": 2, "nand": 2, "xor": 2, "xnor": 2, "not": 1, "buffer": 1},
+        "dimensions": [124, 74],
+        "two_input_node_positions": [[-73, -27, -57, -11], [-73, 10, -57, 26]],
+        "input_node_position": [-73, -8, -57, 8],
+        "output_position": [57, -8, 73, 8],
+        "node_fill": "#FFFFFF"
+    }
+}

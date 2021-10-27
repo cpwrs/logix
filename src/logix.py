@@ -1,6 +1,6 @@
 
 """
-User Interface
+Logix
 Author: Carson Powers
 
 Displays the user interface of logix using tkinter 
@@ -38,13 +38,6 @@ class Home:
         self.app = Editor(self.root, self.newWindow)
 
 
-# Diagram structure
-# Diagram (tk.Canvas)
-#    Object
-#       '---Input points
-#       '---Output points
-
-
 class Editor:
     """A class to represent the main logix editor."""
 
@@ -63,21 +56,25 @@ class Editor:
         self.diagram = tk.Canvas(self.frame, bg = "#808080")
 
         # Load data regarding the object names and assets from json file
-        self.button_data = json.load(open("src/sidebar.json"))
+        self.object_data = json.load(open("src/objects.json"))
         
-        # Create table to hold each tk button, create table to hold objects
-        # Craete dictionary loaded_assets to hold loaded image for each type of object
-        # *Avoids garbage collection*
+        # Create table to hold each tk button, create dictionary to hold objects
+        # Create dictionary loaded_assets to hold loaded image for each type of object
+        # *Avoids garbage collection and helps to reference tag names*
         self.buttons = []
         self.objects = []
-        self.loaded_assets = {}
-        self.object_grabbed = False
+        self.loaded_assets = {} # key = title, value = asset
+
+        # Create variables to control the state of diagram actions
+        self.state = False #State of object grabbed (node, object, or canvas)
+        self.grabbed_object = False
 
         # Load object asset and create button
-        for title in self.button_data["gates"]:
-            filename = self.button_data["gates"][title]["asset"]
-            dimensions = self.button_data["gates"][title]["dimensions"]
-            asset = ImageTk.PhotoImage(Image.open(filename).resize(dimensions))
+        # Start by loading gate objects
+        gate_dimensions = self.object_data["gates"]["dimensions"]
+        for title in self.object_data["gates"]["gate_types"]:
+            filename = "assets/" + title + ".png"
+            asset = ImageTk.PhotoImage(Image.open(filename).resize(gate_dimensions))
             self.loaded_assets[title] = asset
 
             button = tk.Button(self.sidebar, text = title, height = 1, width = 10)
@@ -99,27 +96,63 @@ class Editor:
         # Add object buttons to the sidebar
         for i in range(len(self.buttons)):
             self.buttons[i].grid(row = i, column = 0, sticky = "EW")
-        #Add all other widgets to Editor grid
+        # Add all other widgets to Editor grid
         self.diagram.grid(row = 0, column = 0, sticky = "NSEW")
         self.sidebar.grid(row = 0, column = 0, sticky = "NS")
         self.frame.grid(row = 0, column = 1, sticky = "NSEW")
 
 
     def gate_handler(self, event):
-        """Handle gate button click and create respective gate on the diagram."""
+        """Handle gate button click and create respective gate and nodes on the diagram."""
 
         title = event.widget['text']
-        gate = self.diagram.create_image(20, 20, image = self.loaded_assets[title])
-        # Add to list of canvas objects
-        self.objects.append(gate)
-        # Move image to top layer
+        num_inputs = self.object_data["gates"]["gate_types"][title]
+        node_fill = self.object_data["gates"]["node_fill"]
+
+        gate = self.diagram.create_image(0, 0, image = self.loaded_assets[title])
         self.diagram.tag_raise(gate)
+        self.objects.append(gate)
+
+        # Create input nodes
+        if num_inputs == 1:
+            x0, y0, x1, y1 = self.object_data["gates"]["input_node_position"]
+            node = self.diagram.create_oval(x0, y0, x1, y1, fill = node_fill)
+            self.diagram.addtag_withtag("input", node)
+            self.diagram.addtag_withtag("gate" + str(gate), node)
+            self.diagram.tag_raise(node)
+            self.objects.append(node)
+        else:
+            for i in range(len(self.object_data["gates"]["two_input_node_positions"])):
+                x0, y0, x1, y1 = self.object_data["gates"]["two_input_node_positions"][i]
+                node = self.diagram.create_oval(x0, y0, x1, y1, fill = node_fill)
+                self.diagram.addtag_withtag("input", node)
+                self.diagram.addtag_withtag("gate" + str(gate), node)
+                self.diagram.tag_raise(node)
+                self.objects.append(node)
+        
+        # Create output node
+        x0, y0, x1, y1 = self.object_data["gates"]["output_position"]
+        output = self.diagram.create_oval(x0, y0, x1, y1, fill = node_fill)
+        self.diagram.addtag_withtag("output", output)
+        self.diagram.addtag_withtag("gate" + str(gate), output)
+        self.diagram.tag_raise(output)
+        self.objects.append(output)
 
     
-    def is_grabbing_object(self, x, y):
+    def contains_xy(self, coords, x, y):
+        """Determines if (x,y) is within coordinates"""
+
+        x1, y1, x2, y2 = coords
+        if((x1 < x < x2) and (y1 < y < y2)):
+            return True
+        else:
+            return False
+
+
+    def check_grab_state(self, x, y):
         """
-        Determine if (x,y) is within coordinates bounding an object on the diagram.
-        Set self.object_grabbed and return boolean based on this determination.
+        Determine if (x,y) is within coordinates bounding an object, a node or just the diagram.
+        Return this determination as a "state" string.
 
         PARAMETERS
         ----------
@@ -130,46 +163,48 @@ class Editor:
         
         RETURNS
         -------
-        bool : If (x,y) was within coordinates bounding an object
+        state : If (x,y) was within coordinates bounding an object, node, or diagram
         """
-
         # Loop through each objects, newest to oldest (Top to bottom layer)
         for object in reversed(self.objects):
+            # Get object coordinates
             coords = self.diagram.bbox(object)
-            x1, y1, x2, y2 = coords
 
-            # See if (x,y) is inside these coordinates
-            if((x1 < x < x2) and (y1 < y < y2)):
-                self.object_grabbed = object
-                return True
+            if self.contains_xy(coords, x, y):
+                self.grabbed_object = object
+                tags = self.diagram.gettags(object)
 
-        self.object_grabbed = False
-        return False
+                for tag in tags:
+                    if tag == "input" or tag == "output":
+                        return("node")
+                return("object")
+        return("canvas")
 
 
     def down_handler(self, event):
         """
-        Handle ButtonPress-1 event and retrieve coordinates of event. 
-        Determine if ButtonPress-1 was over the background or an object, and set up drag variables accordingly
+        Handle <ButtonPress-1> event and retrieve coordinates of event. 
+        Determine if <ButtonPress-1> was over the background or an object, and set up drag variables accordingly
         """
 
         # Convert event coords to canvas coords (required due to canvas panning)
         x = int(self.diagram.canvasx(event.x))
         y = int(self.diagram.canvasy(event.y))
+        self.state = self.check_grab_state(x, y)
 
-        if(self.is_grabbing_object(x, y)):
+        if(self.state == "object"):
             #Set starting point of object drag
             self.drag_x = x 
             self.drag_y = y
-        else:
+        elif(self.state == "canvas"):
             # Set starting point of canvas pan
             self.diagram.scan_mark(event.x, event.y) #Doesn't need converted coordinates
 
-
+        
     def move_handler(self, event):
-        """Handle movement of the mouse after the ButtonDown-1 event. Move diagram objects or pan diagram accordingly"""
+        """Handle movement of the mouse after the <B1-Motion> event. Move diagram objects or pan diagram accordingly"""
 
-        if(self.object_grabbed):
+        if(self.state == "object"):
             # Convert mouse coords to canvas coords
             x = int(self.diagram.canvasx(event.x))
             y = int(self.diagram.canvasy(event.y))
@@ -178,10 +213,15 @@ class Editor:
             diff_x = x - self.drag_x
             diff_y = y - self.drag_y
 
+            # Reset drag, move object
             self.drag_x = x
             self.drag_y = y
-            self.diagram.move(self.object_grabbed, diff_x, diff_y)
-        else:
+            self.diagram.move(self.grabbed_object, diff_x, diff_y)
+            
+            # Move objects nodes
+            for object in self.diagram.find_withtag("gate" + str(self.grabbed_object)):
+                self.diagram.move(object, diff_x, diff_y)
+        elif(self.state == "canvas"):
             # Pan diagram
             self.diagram.scan_dragto(event.x, event.y, gain=1)
     
