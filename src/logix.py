@@ -10,7 +10,6 @@ and deploys modules to create and save logix circuits.
 import os 
 import json
 import tkinter as tk
-from tkinter.constants import X
 from PIL import ImageTk, Image
 
 
@@ -52,14 +51,17 @@ class Editor:
         self.window.geometry("750x750")
 
         # Create Sidebar and Diagram widgets (Frame just holds the Canvas inside it)
-        self.sidebar = tk.LabelFrame(self.window, text="Gates")
+        self.sidebar = tk.LabelFrame(self.window, text="Objects")
+        self.gatebar = tk.LabelFrame(self.sidebar, text = "Gates")
+        self.inputbar = tk.LabelFrame(self.sidebar, text = "Inputs")
+
         self.frame = tk.LabelFrame(self.window, text="Diagram")
         self.diagram = tk.Canvas(self.frame, bg = "#808080")
 
         # Load data regarding the object names and assets from json file
         self.object_data = json.load(open("src/objects.json"))
         
-        # Create table to hold each tk button, create dictionary to hold objects
+        # Create table to hold each tk button, create table to hold objects
         # Create dictionary loaded_assets to hold loaded image for each type of object
         # *Avoids garbage collection and helps to reference tag names*
         self.buttons = []
@@ -72,7 +74,6 @@ class Editor:
         self.grabbed_object = False
         self.temp_edge = False
 
-
         # Load object asset and create button
         # Start by loading gate objects
         gate_dimensions = self.object_data["gates"]["dimensions"]
@@ -81,7 +82,7 @@ class Editor:
             asset = ImageTk.PhotoImage(Image.open(filename).resize(gate_dimensions))
             self.loaded_assets[title] = asset
 
-            button = tk.Button(self.sidebar, text = title, height = 1, width = 10)
+            button = tk.Button(self.gatebar, text = title, height = 1, width = 10)
             button.bind("<ButtonPress-1>", self.gate_handler)
             self.buttons.append(button)
         
@@ -94,7 +95,11 @@ class Editor:
         # Configure the Editor's grid scaling
         self.window.rowconfigure(0, weight=1)
         self.window.columnconfigure(1, weight= 1)
-        self.sidebar.columnconfigure(0,weight = 1)
+
+        self.sidebar.rowconfigure(0,weight = 0)
+        self.sidebar.rowconfigure(1, weight = 1)
+        self.sidebar.columnconfigure(0, weight = 1)
+
         self.frame.rowconfigure(0, weight=1)
         self.frame.columnconfigure(0, weight=1)
 
@@ -104,6 +109,8 @@ class Editor:
         # Add all other widgets to Editor grid
         self.diagram.grid(row = 0, column = 0, sticky = "NSEW")
         self.sidebar.grid(row = 0, column = 0, sticky = "NS")
+        self.gatebar.grid(row = 0, column = 0, sticky = "NSEW")
+        self.inputbar.grid(row = 1, column = 0, sticky = "NSEW")
         self.frame.grid(row = 0, column = 1, sticky = "NSEW")
 
 
@@ -119,6 +126,7 @@ class Editor:
         self.objects.append(gate)
 
         # Create input nodes
+        # TODO: For the love of god make this cleaner
         if num_inputs == 1:
             x0, y0, x1, y1 = self.object_data["gates"]["input_node_position"]
             node = self.diagram.create_oval(x0, y0, x1, y1, fill = node_fill)
@@ -245,7 +253,7 @@ class Editor:
         if self.state == "node":
             # Complete edge if it ends on another node
             edge = self.temp_edge
-            valid = False
+            valid_edge = False
             # Find gate of starting node
             start_gate = self.diagram.gettags(self.grabbed_object)[1][4]
             # Check if mouse is over a valid final node
@@ -259,7 +267,7 @@ class Editor:
                         #Filter out final nodes on the same gate
                         if not(start_gate == end_gate):
                             #Final node found! Create final edge
-                            valid = True
+                            valid_edge = True
                             self.edges.append(edge)
 
                             #Adjust edge coords to final position
@@ -274,7 +282,7 @@ class Editor:
                             self.diagram.addtag_withtag(end_tag, edge)
                             print(self.diagram.gettags(edge))
             
-            if valid == False:
+            if valid_edge == False:
                 self.diagram.delete(self.temp_edge)
                             
         #Reset grab variables
