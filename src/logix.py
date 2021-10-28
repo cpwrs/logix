@@ -10,6 +10,7 @@ and deploys modules to create and save logix circuits.
 import os 
 import json
 import tkinter as tk
+from tkinter.constants import X
 from PIL import ImageTk, Image
 
 
@@ -63,11 +64,14 @@ class Editor:
         # *Avoids garbage collection and helps to reference tag names*
         self.buttons = []
         self.objects = []
+        self.edges = []
         self.loaded_assets = {} # key = title, value = asset
 
         # Create variables to control the state of diagram actions
         self.state = False #State of object grabbed (node, object, or canvas)
         self.grabbed_object = False
+        self.temp_edge = False
+
 
         # Load object asset and create button
         # Start by loading gate objects
@@ -83,7 +87,8 @@ class Editor:
         
         # Bind diagram to zoom/pan functions
         self.diagram.bind("<MouseWheel>", self.do_zoom)
-        self.diagram.bind('<ButtonPress-1>', self.down_handler)
+        self.diagram.bind("<ButtonPress-1>", self.down_handler)
+        self.diagram.bind("<ButtonRelease-1>", self.up_handler)
         self.diagram.bind("<B1-Motion>", self.move_handler)
 
         # Configure the Editor's grid scaling
@@ -140,13 +145,32 @@ class Editor:
 
     
     def contains_xy(self, coords, x, y):
-        """Determines if (x,y) is within coordinates"""
+        """Determine if (x,y) is within coordinates"""
 
         x1, y1, x2, y2 = coords
         if((x1 < x < x2) and (y1 < y < y2)):
             return True
         else:
             return False
+
+    
+    def find_center_coords(self, coords):
+        """Determine center (x,y) of x1, y1, x2, y2"""
+
+        x1, y1, x2, y2 = coords
+        x = (x1+x2)/2
+        y = (y1+y2)/2
+        return(x, y)
+
+
+    def is_node(self, object):
+        """Determine if object contains a tag denoting it as a node"""
+
+        tags = self.diagram.gettags(object)
+        for tag in tags:
+            if tag == "input" or tag == "output":
+                return(True)
+        return(False)
 
 
     def check_grab_state(self, x, y):
@@ -173,10 +197,12 @@ class Editor:
             if self.contains_xy(coords, x, y):
                 self.grabbed_object = object
                 tags = self.diagram.gettags(object)
-
                 for tag in tags:
-                    if tag == "input" or tag == "output":
+                    #Only allow "tag" state from outputs!
+                    if tag == "output":
                         return("node")
+                    elif tag == "input":
+                        return("canvas")
                 return("object")
         return("canvas")
 
@@ -190,6 +216,7 @@ class Editor:
         # Convert event coords to canvas coords (required due to canvas panning)
         x = int(self.diagram.canvasx(event.x))
         y = int(self.diagram.canvasy(event.y))
+        # Set state of mouse grab
         self.state = self.check_grab_state(x, y)
 
         if(self.state == "object"):
@@ -199,16 +226,74 @@ class Editor:
         elif(self.state == "canvas"):
             # Set starting point of canvas pan
             self.diagram.scan_mark(event.x, event.y) #Doesn't need converted coordinates
+        elif(self.state == "node"):
+            #Find center coords, start edge line
+            c_x, c_y = self.find_center_coords(self.diagram.coords(self.grabbed_object))
+            self.temp_edge = self.diagram.create_line(c_x, c_y, c_x, c_y, width = 3)
+
+
+    def up_handler(self, event):
+        """
+        Handle the <ButtonRelease-1> event and consequent object actions.
+        Select an object or complete an edge accordingly.
+        """
+
+        # Convert mouse coords to canvas coords
+        x = int(self.diagram.canvasx(event.x))
+        y = int(self.diagram.canvasy(event.y))
+
+        if self.state == "node":
+            # Complete edge if it ends on another node
+            edge = self.temp_edge
+            valid = False
+            # Find gate of starting node
+            start_gate = self.diagram.gettags(self.grabbed_object)[1][4]
+            # Check if mouse is over a valid final node
+            for object in reversed(self.objects):
+                # Filter out non-nodes
+                if self.is_node(object):
+                    # Filter out objects mouse isnt touching
+                    if self.contains_xy(self.diagram.bbox(object), x, y):
+                        #Find gate final node is attached to
+                        end_gate = self.diagram.gettags(object)[1][4]
+                        #Filter out final nodes on the same gate
+                        if not(start_gate == end_gate):
+                            #Final node found! Create final edge
+                            valid = True
+                            self.edges.append(edge)
+
+                            #Adjust edge coords to final position
+                            x0, y0 = self.find_center_coords(self.diagram.coords(self.grabbed_object))
+                            x1, y1 = self.find_center_coords(self.diagram.coords(object))
+                            self.diagram.coords(edge, x0, y0, x1, y1)
+
+                            #Create tags that describe the two nodes the edge conects
+                            start_tag = "start" + str(self.grabbed_object)
+                            end_tag = "end" + str(object)
+                            self.diagram.addtag_withtag(start_tag, edge)
+                            self.diagram.addtag_withtag(end_tag, edge)
+                            print(self.diagram.gettags(edge))
+            
+            if valid == False:
+                self.diagram.delete(self.temp_edge)
+                            
+        #Reset grab variables
+        self.object_grabbed = False
+        self.temp_edge = False
+        self.state = False
 
         
     def move_handler(self, event):
-        """Handle movement of the mouse after the <B1-Motion> event. Move diagram objects or pan diagram accordingly"""
+        """
+        Handle movement of the mouse after the <B1-Motion> event. 
+        Move diagram objects, pan diagram, or create an edge accordingly.
+        """
+
+        # Convert mouse coords to canvas coords
+        x = int(self.diagram.canvasx(event.x))
+        y = int(self.diagram.canvasy(event.y))
 
         if(self.state == "object"):
-            # Convert mouse coords to canvas coords
-            x = int(self.diagram.canvasx(event.x))
-            y = int(self.diagram.canvasy(event.y))
-
             # Calculate distance moved
             diff_x = x - self.drag_x
             diff_y = y - self.drag_y
@@ -219,11 +304,31 @@ class Editor:
             self.diagram.move(self.grabbed_object, diff_x, diff_y)
             
             # Move objects nodes
-            for object in self.diagram.find_withtag("gate" + str(self.grabbed_object)):
-                self.diagram.move(object, diff_x, diff_y)
+            for node in self.diagram.find_withtag("gate" + str(self.grabbed_object)):
+                self.diagram.move(node, diff_x, diff_y)
+                # Move nodes edges
+                # Find edges that start at node
+                for edge in self.diagram.find_withtag("start" + str(node)):
+                    print("found edge"+str(edge))
+                    #Find current coords and update
+                    x0, y0, x1, y1 = self.diagram.coords(edge)
+                    self.diagram.coords(edge, x0 + diff_x, y0 + diff_y, x1, y1)
+                # Find edges that end at node
+                for edge in self.diagram.find_withtag("end" + str(node)):
+                    print("found edge"+str(edge))
+                    # Find current coords and update
+                    x0, y0, x1, y1 = self.diagram.coords(edge)
+                    self.diagram.coords(edge, x0, y0, x1 + diff_x, y1 + diff_y)
+
         elif(self.state == "canvas"):
             # Pan diagram
             self.diagram.scan_dragto(event.x, event.y, gain=1)
+
+        elif(self.state == "node"):
+            # Find original x, y
+            x0, y0 = self.find_center_coords(self.diagram.coords(self.grabbed_object))
+            # Update line coords
+            self.diagram.coords(self.temp_edge, x0, y0, x, y)
     
 
     def do_zoom(self, event):
