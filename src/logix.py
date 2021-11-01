@@ -10,6 +10,9 @@ and deploys modules to create and save logix circuits.
 import os 
 import json
 import tkinter as tk
+import tkinter.font as tkFont
+from tkinter import ttk
+from ttkthemes import ThemedStyle
 from PIL import ImageTk, Image
 
 
@@ -49,16 +52,29 @@ class Editor:
 
         # Create window of size 750x750
         self.window.geometry("750x750")
+        self.window.configure(background="#181818")
+
+        style = ThemedStyle(self.window)
+        style.set_theme("equilux")
 
         # Create Sidebar and Diagram widgets (Frame just holds the Canvas inside it)
-        self.sidebar = tk.LabelFrame(self.window, text="Objects")
-        self.gate_frame = tk.LabelFrame(self.sidebar, text = "Gates")
+        self.sidebar = ttk.LabelFrame(self.window, text = "Objects", padding = 4)
+        self.gate_frame = ttk.LabelFrame(self.sidebar, text = "Gates", padding = 4)
         self.gate_buttons = []
-        self.input_frame = tk.LabelFrame(self.sidebar, text = "Inputs")
+        self.input_frame = ttk.LabelFrame(self.sidebar, text = "Inputs", padding = 4)
         self.input_buttons = []
 
-        self.frame = tk.LabelFrame(self.window, text="Diagram")
-        self.diagram = tk.Canvas(self.frame, bg = "#808080")
+        self.frame = ttk.LabelFrame(self.window, text="Diagram", padding = 2)
+        self.diagram = tk.Canvas(self.frame, bg = "#404040")
+        
+        # Create menu widget with themed menubuttons
+        # TODO: Add cascade options and functionality
+        self.menu = tk.Menu(self.window)
+        self.window.config(menu = self.menu)
+        self.file_menu = tk.Menu(self.menu)
+        self.edit_menu = tk.Menu(self.menu)
+        self.menu.add_cascade(label = "File", menu = self.file_menu)
+        self.menu.add_cascade(label = "Edit", menu = self.edit_menu)
 
         # Load data regarding the object names and assets from json file
         self.object_data = json.load(open("src/objects.json"))
@@ -84,7 +100,7 @@ class Editor:
             asset = ImageTk.PhotoImage(Image.open(filename).resize(gate_dimensions))
             self.loaded_assets[title] = asset
 
-            button = tk.Button(self.gate_frame, text = title, height = 1, width = 10)
+            button = ttk.Button(self.gate_frame, text = title, width = 10)
             button.bind("<ButtonPress-1>", self.draw_gate)
             self.gate_buttons.append(button)
         
@@ -200,7 +216,6 @@ class Editor:
         return(False)
 
 
-    # TODO: Refine what qualifies as node state
     def check_grab_state(self, x, y):
         """
         Determine if (x,y) is within coordinates bounding an object, a node or just the diagram.
@@ -268,7 +283,7 @@ class Editor:
             c_x, c_y = self.find_center_coords(self.diagram.coords(self.grabbed_object))
             self.temp_edge = self.diagram.create_line(c_x, c_y, c_x, c_y, width = 3)
 
-    # TODO: Refine what qualifies as a valid end node
+
     def up_handler(self, event):
         """
         Handle the <ButtonRelease-1> event and consequent object actions.
