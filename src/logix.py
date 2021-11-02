@@ -10,7 +10,6 @@ and deploys modules to create and save logix circuits.
 import os 
 import json
 import tkinter as tk
-import tkinter.font as tkFont
 from tkinter import ttk
 from ttkthemes import ThemedStyle
 from PIL import ImageTk, Image
@@ -54,6 +53,7 @@ class Editor:
         self.window.geometry("750x750")
         self.window.configure(background="#181818")
 
+        #Add styling to window (for ttk widgets)
         style = ThemedStyle(self.window)
         style.set_theme("equilux")
 
@@ -225,7 +225,45 @@ class Editor:
         output_coords = self.input_data[title]["output_position"]
         self.draw_node(output_coords, node_fill_color, "output", input)
 
-    
+        if title == "button":
+            self.diagram.tag_bind(input, "<ButtonPress-1>", lambda event: self.button_press(event, input))
+            self.diagram.tag_bind(input, "<ButtonRelease-1>", lambda event: self.button_release(event, input))
+        elif title == "switch":
+            self.diagram.tag_bind(input, "<ButtonRelease-1>", lambda event: self.switch_click(event, input))
+
+
+    def button_press(self, event, id):
+        """Handles mouse pressing down on button input object on the diagram"""
+
+        self.diagram.addtag_withtag("pressed", id)
+        pressed_asset = self.loaded_assets["button_changed"]
+        self.diagram.itemconfig(id, image = pressed_asset)
+
+
+    def button_release(self, event, id):
+        """Handles mouse releasing click over button input object on the diagram"""
+
+        tags = self.diagram.gettags(id)
+        if "pressed" in tags:
+            default_asset = self.loaded_assets["button"]
+            self.diagram.itemconfig(id, image = default_asset)
+            self.diagram.dtag(id, "pressed")
+
+
+    def switch_click(self, event, id):
+        """Handle switching a switch input object on/off on the diagram when clicked"""
+
+        tags = self.diagram.gettags(id)
+        if "on" in tags:
+            default_asset = self.loaded_assets["switch"]
+            self.diagram.itemconfig(id, image = default_asset)
+            self.diagram.dtag(id, "on")
+        else:
+            on_asset = self.loaded_assets["switch_changed"]
+            self.diagram.itemconfig(id, image = on_asset)
+            self.diagram.addtag_withtag("on", id)
+
+
     def contains_xy(self, coords, x, y):
         """Determine if (x,y) is within coordinates"""
 
@@ -314,9 +352,11 @@ class Editor:
             #Set starting point of object drag
             self.drag_x = x 
             self.drag_y = y
+
         elif(self.state == "canvas"):
             # Set starting point of canvas pan
             self.diagram.scan_mark(event.x, event.y) #Doesn't need converted coordinates
+
         elif(self.state == "node"):
             #Find center coords, start edge line
             c_x, c_y = self.find_center_coords(self.diagram.coords(self.grabbed_object))
