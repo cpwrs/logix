@@ -312,13 +312,10 @@ class Editor:
         # Loop through nodes, newest to oldest
         for node in reversed(self.nodes):
             tags = self.diagram.gettags(node)
-            touched = False
-            output = False
-            for tag in tags:
-                if tag == "current":
-                    touched = True
-                if tag == "output":
-                    output = True
+            coords = self.diagram.coords(node)
+            touched = self.contains_xy(coords, x, y)
+            output = "output" in tags
+            
             if touched and output:
                 self.grabbed_object = node
                 return("node")
@@ -381,7 +378,7 @@ class Editor:
             start_node_tags = self.diagram.gettags(start_node)
             for tag in start_node_tags:
                 if "object" in tag:
-                    start_gate = int(tag[6])
+                    start_object_id = int(tag.replace("object", ""))
 
             # Conditions to meet for valid edge:
             # - Start node can't be the same as end node
@@ -391,42 +388,44 @@ class Editor:
             # - Currently under mouse
 
             for node in reversed(self.nodes):
-                new_node = False
-                new_gate = False
-                is_input = False
-                has_input = False
-                coords = self.diagram.coords(node)
+                if valid_edge == False:
+                    new_node = False
+                    new_obj = False
+                    is_input = False
+                    has_input = False
+                    coords = self.diagram.coords(node)
 
-                #Filters out nodes not being touched
-                if self.contains_xy(coords, x, y): 
-                    if node != start_node:
-                        new_node = True
+                    #Filters out nodes not being touched
+                    if self.contains_xy(coords, x, y): 
+                        if node != start_node:
+                            new_node = True
 
-                    tags = self.diagram.gettags(node)
-                    print(tags)
-                    for tag in tags:
-                        if tag == "input":
-                            is_input = True
-                        elif ("object" in tag) and (int(tag[6]) != start_gate):
-                            new_gate = True
-                        elif tag == "has_input":
-                            has_input = True
+                        tags = self.diagram.gettags(node)
+                        print(tags)
+                        for tag in tags:
+                            if tag == "input":
+                                is_input = True
+                            elif ("object" in tag) and (int(tag.replace("object", "")) != start_object_id):
+                                new_obj = True
+                            elif tag == "has_input":
+                                has_input = True
 
-                    if new_node and new_gate and is_input and not(has_input):
-                        valid_edge = True
-                        self.edges.append(edge)
+                        print(new_node, new_obj, is_input, has_input)
+                        if new_node and new_obj and is_input and not(has_input):
+                            valid_edge = True
+                            self.edges.append(edge)
 
-                        # Adjust edge coords to final position
-                        x0, y0 = self.find_center_coords(self.diagram.coords(self.grabbed_object))
-                        x1, y1 = self.find_center_coords(self.diagram.coords(node))
-                        self.diagram.coords(edge, x0, y0, x1, y1)
+                            # Adjust edge coords to final position
+                            x0, y0 = self.find_center_coords(self.diagram.coords(self.grabbed_object))
+                            x1, y1 = self.find_center_coords(self.diagram.coords(node))
+                            self.diagram.coords(edge, x0, y0, x1, y1)
 
-                        # Create tags that describe the two nodes the edge conects
-                        start_tag = "start" + str(self.grabbed_object)
-                        end_tag = "end" + str(node)
-                        self.diagram.addtag_withtag(start_tag, edge)
-                        self.diagram.addtag_withtag(end_tag, edge)
-                        self.diagram.addtag_withtag("has_input", node)
+                            # Create tags that describe the two nodes the edge conects
+                            start_tag = "start" + str(self.grabbed_object)
+                            end_tag = "end" + str(node)
+                            self.diagram.addtag_withtag(start_tag, edge)
+                            self.diagram.addtag_withtag(end_tag, edge)
+                            self.diagram.addtag_withtag("has_input", node)
 
             if valid_edge == False:
                 self.diagram.delete(self.temp_edge)
