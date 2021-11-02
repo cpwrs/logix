@@ -78,6 +78,8 @@ class Editor:
 
         # Load data regarding the object names and assets from json file
         self.object_data = json.load(open("src/objects.json"))
+        self.gate_data = self.object_data["gates"]
+        self.input_data = self.object_data["inputs"]
         
         # Create table to hold each tk button, create table to hold objects
         # Create dictionary loaded_assets to hold loaded image for each type of object
@@ -94,7 +96,7 @@ class Editor:
 
         # Load object asset and create button
         # Start by loading gate objects
-        gate_dimensions = self.object_data["gates"]["dimensions"]
+        gate_dimensions = self.gate_data["dimensions"]
         for title in self.object_data["gates"]["gate_types"]:
             filename = "assets/" + title + ".png"
             asset = ImageTk.PhotoImage(Image.open(filename).resize(gate_dimensions))
@@ -103,6 +105,24 @@ class Editor:
             button = ttk.Button(self.gate_frame, text = title, width = 10)
             button.bind("<ButtonPress-1>", self.draw_gate)
             self.gate_buttons.append(button)
+
+        #Next, load input objects and create their buttons
+        for input in self.input_data:
+            default_filename = self.input_data[input]["default_asset"]
+            dimensions = self.input_data[input]["dimensions"]
+            img = Image.open(default_filename).resize(dimensions)
+            print(img.mode)
+            asset = ImageTk.PhotoImage(img)
+            self.loaded_assets[input] = asset
+
+            if self.input_data[input].get("changed_asset"):
+                changed_filename = self.input_data[input]["changed_asset"]
+                asset = ImageTk.PhotoImage(Image.open(changed_filename).resize(dimensions))
+                self.loaded_assets[(input + "_changed")] = asset
+
+            button = ttk.Button(self.input_frame, text = input, width = 10)
+            button.bind("<ButtonPress-1>", self.draw_input)
+            self.input_buttons.append(button)
         
         # Bind diagram to zoom/pan functions
         self.diagram.bind("<MouseWheel>", self.do_zoom)
@@ -124,6 +144,8 @@ class Editor:
         # Add object buttons to the sidebar
         for i in range(len(self.gate_buttons)):
             self.gate_buttons[i].grid(row = i, column = 0, sticky = "EW")
+        for i in range(len(self.input_buttons)):
+            self.input_buttons[i].grid(row = i, column = 0, sticky = "EW")
         # Add all other widgets to Editor grid
         self.diagram.grid(row = 0, column = 0, sticky = "NSEW")
         self.sidebar.grid(row = 0, column = 0, sticky = "NS")
@@ -132,7 +154,7 @@ class Editor:
         self.frame.grid(row = 0, column = 1, sticky = "NSEW")
 
 
-    def draw_node(self, coords, color, type, gate_id):
+    def draw_node(self, coords, color, type, object_id):
         """
         Create a node on the diagram and appropriately tag it.
         
@@ -144,8 +166,8 @@ class Editor:
                 node fill color (hexadecimal)
         type : string
                type of node ("input" or "output")
-        gate_id: tagOrId
-                 integer id of gate node is being attached to
+        object_id: tagOrId
+                 integer id of object the node is being attached to
         """
 
         # Create node at coords with color
@@ -154,7 +176,7 @@ class Editor:
 
         # Add node tags
         self.diagram.addtag_withtag(type, node)
-        self.diagram.addtag_withtag("gate" + str(gate_id), node)
+        self.diagram.addtag_withtag("object" + str(object_id), node)
         self.diagram.tag_raise(node)
         self.nodes.append(node)
 
@@ -166,8 +188,8 @@ class Editor:
         """
 
         title = event.widget['text']
-        num_inputs = self.object_data["gates"]["gate_types"][title]
-        node_fill_color = self.object_data["gates"]["node_fill"]
+        num_inputs = self.gate_data["gate_types"][title]
+        node_fill_color = self.gate_data["node_fill"]
 
         gate = self.diagram.create_image(0, 0, image = self.loaded_assets[title])
         self.diagram.tag_raise(gate)
@@ -175,16 +197,33 @@ class Editor:
 
         # Create input nodes
         if num_inputs == 1:
-            coords = self.object_data["gates"]["input_node_position"]
+            coords = self.gate_data["input_node_position"]
             self.draw_node(coords, node_fill_color, "input", gate)
         else:
             for i in range(num_inputs):
-                coords = self.object_data["gates"]["two_input_node_positions"][i]
+                coords = self.gate_data["two_input_node_positions"][i]
                 self.draw_node(coords, node_fill_color, "input", gate)
         
         # Create output node
-        coords = self.object_data["gates"]["output_position"]
+        coords = self.gate_data["output_position"]
         self.draw_node(coords, node_fill_color, "output", gate)
+
+
+    def draw_input(self, event):
+        """
+        Handle input button click and create the correct object on the diagram.
+        Appropriately tag input object and add output node
+        """
+
+        title = event.widget['text']
+        node_fill_color = self.object_data["gates"]["node_fill"]
+
+        input = self.diagram.create_image(0, 0, image = self.loaded_assets[title])
+        self.diagram.tag_raise(input)
+        self.objects.append(input)
+
+        output_coords = self.input_data[title]["output_position"]
+        self.draw_node(output_coords, node_fill_color, "output", input)
 
     
     def contains_xy(self, coords, x, y):
@@ -301,8 +340,8 @@ class Editor:
             start_node = self.grabbed_object
             start_node_tags = self.diagram.gettags(start_node)
             for tag in start_node_tags:
-                if "gate" in tag:
-                    start_gate = int(tag[4])
+                if "object" in tag:
+                    start_gate = int(tag[6])
 
             # Conditions to meet for valid edge:
             # - Start node can't be the same as end node
@@ -328,7 +367,7 @@ class Editor:
                     for tag in tags:
                         if tag == "input":
                             is_input = True
-                        elif ("gate" in tag) and (int(tag[4]) != start_gate):
+                        elif ("object" in tag) and (int(tag[6]) != start_gate):
                             new_gate = True
                         elif tag == "has_input":
                             has_input = True
@@ -379,7 +418,7 @@ class Editor:
             self.diagram.move(self.grabbed_object, diff_x, diff_y)
             
             # Move objects nodes
-            for node in self.diagram.find_withtag("gate" + str(self.grabbed_object)):
+            for node in self.diagram.find_withtag("object" + str(self.grabbed_object)):
                 self.diagram.move(node, diff_x, diff_y)
                 # Move nodes edges
                 # Find edges that start at node

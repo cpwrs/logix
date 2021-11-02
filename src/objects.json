@@ -18,5 +18,29 @@
         "input_node_position": [-73, -8, -57, 8],
         "output_position": [57, -8, 73, 8],
         "node_fill": "#FFFFFF"
+    },
+    "inputs": {
+        "button": {
+            "default_asset": "assets/button_default.png",
+            "changed_asset": "assets/button_pressed.png",
+            "output_position": [42, -8, 58, 8],
+            "dimensions": [85, 58]
+        },
+        "switch": {
+            "default_asset": "assets/switch_off.png",
+            "changed_asset": "assets/switch_on.png",
+            "output_position": [42, -8, 58, 8],
+            "dimensions": [85, 74]
+        },
+        "constant on": {
+            "default_asset": "assets/constant_on.png",
+            "output_position": [42, -8, 58, 8],
+            "dimensions": [85, 58]
+        },
+        "constant off": {
+            "default_asset": "assets/constant_off.png",
+            "output_position": [42, -8, 58, 8],
+            "dimensions": [85, 58]
+        }
     }
 }
