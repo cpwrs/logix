@@ -10,7 +10,7 @@
             "not": 1, 
             "buffer": 1
         },
-        "dimensions": [124, 74],
+        "dimensions": [125, 75],
         "two_input_node_positions": [
             [-73, -27, -57, -11], 
             [-73, 10, -57, 26]
@@ -24,23 +24,31 @@
             "default_asset": "assets/button_default.png",
             "changed_asset": "assets/button_pressed.png",
             "output_position": [42, -8, 58, 8],
-            "dimensions": [85, 58]
+            "dimensions": [105, 75]
         },
         "switch": {
             "default_asset": "assets/switch_off.png",
             "changed_asset": "assets/switch_on.png",
             "output_position": [42, -8, 58, 8],
-            "dimensions": [85, 74]
+            "dimensions": [85, 75]
         },
         "constant on": {
             "default_asset": "assets/constant_on.png",
             "output_position": [42, -8, 58, 8],
-            "dimensions": [85, 58]
+            "dimensions": [105, 75]
         },
         "constant off": {
             "default_asset": "assets/constant_off.png",
             "output_position": [42, -8, 58, 8],
-            "dimensions": [85, 58]
+            "dimensions": [105, 75]
+        }
+    },
+    "outputs": {
+        "lightbulb": {
+            "default_asset": "assets/lightbulb_default.png",
+            "changed_asset": "assets/lightbulb_changed.png",
+            "input_position": [-8, 42, 8, 58],
+            "dimensions": [75, 105]
         }
     }
 }

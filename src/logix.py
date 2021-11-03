@@ -65,6 +65,8 @@ class Editor:
         self.gate_buttons = []
         self.input_frame = ttk.LabelFrame(self.sidebar, text = "Inputs", padding = 4)
         self.input_buttons = []
+        self.output_frame = ttk.LabelFrame(self.sidebar, text = "Outputs", padding = 4)
+        self.output_buttons = []
 
         self.frame = ttk.LabelFrame(self.window, text="Diagram", padding = 2)
         self.diagram = tk.Canvas(self.frame, bg = "#404040")
@@ -82,6 +84,7 @@ class Editor:
         self.object_data = json.load(open("src/objects.json"))
         self.gate_data = self.object_data["gates"]
         self.input_data = self.object_data["inputs"]
+        self.output_data = self.object_data["outputs"]
         
         # Create table to hold each tk button, create table to hold objects
         # Create dictionary loaded_assets to hold loaded image for each type of object
@@ -112,9 +115,7 @@ class Editor:
         for input in self.input_data:
             default_filename = self.input_data[input]["default_asset"]
             dimensions = self.input_data[input]["dimensions"]
-            img = Image.open(default_filename).resize(dimensions)
-            print(img.mode)
-            asset = ImageTk.PhotoImage(img)
+            asset = ImageTk.PhotoImage(Image.open(default_filename).resize(dimensions))
             self.loaded_assets[input] = asset
 
             if self.input_data[input].get("changed_asset"):
@@ -125,6 +126,22 @@ class Editor:
             button = ttk.Button(self.input_frame, text = input, width = 10)
             button.bind("<ButtonPress-1>", self.draw_input)
             self.input_buttons.append(button)
+
+        #Next, load output objects and create their buttons
+        for output in self.output_data:
+            default_filename = self.output_data[output]["default_asset"]
+            dimensions = self.output_data[output]["dimensions"]
+            asset = ImageTk.PhotoImage(Image.open(default_filename).resize(dimensions))
+            self.loaded_assets[output] = asset
+
+            changed_filename = self.output_data[output]["changed_asset"]
+            asset = ImageTk.PhotoImage(Image.open(changed_filename).resize(dimensions))
+            self.loaded_assets[(output + "_changed")] = asset
+
+            button =  ttk.Button(self.output_frame, text = output, width = 10)
+            button.bind("<ButtonPress-1>", self.draw_output)
+            self.output_buttons.append(button)
+
         
         # Bind diagram to zoom/pan functions
         self.diagram.bind("<MouseWheel>", self.do_zoom)
@@ -137,7 +154,8 @@ class Editor:
         self.window.columnconfigure(1, weight= 1)
 
         self.sidebar.rowconfigure(0,weight = 0)
-        self.sidebar.rowconfigure(1, weight = 1)
+        self.sidebar.rowconfigure(1, weight = 0)
+        self.sidebar.rowconfigure(2, weight = 1)
         self.sidebar.columnconfigure(0, weight = 1)
 
         self.frame.rowconfigure(0, weight=1)
@@ -148,11 +166,14 @@ class Editor:
             self.gate_buttons[i].grid(row = i, column = 0, sticky = "EW")
         for i in range(len(self.input_buttons)):
             self.input_buttons[i].grid(row = i, column = 0, sticky = "EW")
+        for i in range(len(self.output_buttons)):
+            self.output_buttons[i].grid(row = i, column = 0, sticky = "EW")
         # Add all other widgets to Editor grid
         self.diagram.grid(row = 0, column = 0, sticky = "NSEW")
         self.sidebar.grid(row = 0, column = 0, sticky = "NS")
         self.gate_frame.grid(row = 0, column = 0, sticky = "NSEW")
         self.input_frame.grid(row = 1, column = 0, sticky = "NSEW")
+        self.output_frame.grid(row = 2, column = 0, sticky = "NSEW")
         self.frame.grid(row = 0, column = 1, sticky = "NSEW")
 
 
@@ -239,6 +260,25 @@ class Editor:
             self.diagram.tag_bind(input, "<ButtonRelease-1>", lambda event: self.button_release(event, input))
         elif title == "switch":
             self.diagram.tag_bind(input, "<ButtonRelease-1>", lambda event: self.switch_click(event, input))
+
+    
+    def draw_output(self, event):
+        """
+        Handle the click of an output button and create the corresponding object on the diagram
+        Appropriately tag output object and add input node
+        """
+
+        title = event.widget['text']
+        node_fill_color = self.object_data["gates"]["node_fill"]
+
+        output = self.diagram.create_image(0, 0, image = self.loaded_assets[title])
+        self.diagram.tag_raise(output)
+        self.objects.append(output)
+
+        self.circuit.add_node(output, 0, 1)
+
+        input_coords = self.output_data[title]["input_position"]
+        self.draw_node(input_coords, node_fill_color, "input0", output)
 
 
     def button_press(self, event, id):
@@ -362,7 +402,7 @@ class Editor:
         elif(self.state == "node"):
             #Find center coords, start edge line
             c_x, c_y = self.find_center_coords(self.diagram.coords(self.grabbed_object))
-            self.temp_edge = self.diagram.create_line(c_x, c_y, c_x, c_y, width = 3)
+            self.temp_edge = self.diagram.create_line(c_x, c_y, c_x, c_y, width = 5)
 
 
     def up_handler(self, event):
