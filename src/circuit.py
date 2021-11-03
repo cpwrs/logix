@@ -59,11 +59,11 @@ class Circuit:
 
         node = self.graph.nodes[id]
 
+        # Set new input value
+        node["input"][input_position] = input_value
+
         # Only apply logic if it has any (only gates do)
-        if node["logic"]:
-            # Set new input value
-            node["input"][input_position] = input_value
-            
+        if node["logic"]: 
             logic_type = node["logic"]
             inputs = node["input"]
             

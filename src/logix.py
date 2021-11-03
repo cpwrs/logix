@@ -7,6 +7,7 @@ Displays the user interface of logix using tkinter
 and deploys modules to create and save logix circuits.
 """
 
+
 import os 
 import json
 import tkinter as tk
@@ -55,7 +56,7 @@ class Editor:
         self.window.geometry("750x750")
         self.window.configure(background="#181818")
 
-        #Add styling to window (for ttk widgets)
+        # Add styling to window (for ttk widgets)
         style = ThemedStyle(self.window)
         style.set_theme("equilux")
 
@@ -95,7 +96,7 @@ class Editor:
         self.loaded_assets = {} # key = title, value = asset
 
         # Create variables to control the state of diagram actions
-        self.state = False #State of object grabbed (node, object, or canvas)
+        self.state = False # State of object grabbed (node, object, or canvas)
         self.grabbed_object = False
         self.temp_edge = False
 
@@ -111,7 +112,7 @@ class Editor:
             button.bind("<ButtonPress-1>", self.draw_gate)
             self.gate_buttons.append(button)
 
-        #Next, load input objects and create their buttons
+        # Next, load input objects and create their buttons
         for input in self.input_data:
             default_filename = self.input_data[input]["default_asset"]
             dimensions = self.input_data[input]["dimensions"]
@@ -127,7 +128,7 @@ class Editor:
             button.bind("<ButtonPress-1>", self.draw_input)
             self.input_buttons.append(button)
 
-        #Next, load output objects and create their buttons
+        # Next, load output objects and create their buttons
         for output in self.output_data:
             default_filename = self.output_data[output]["default_asset"]
             dimensions = self.output_data[output]["dimensions"]
@@ -229,7 +230,7 @@ class Editor:
                 coords = self.gate_data["two_input_node_positions"][i]
                 self.draw_node(coords, node_fill_color, "input" + str(i), gate)
 
-                #Create tags denoting if the input node is on top or bottom
+                # Create tags denoting if the input node is on top or bottom
         
         # Create output node
         coords = self.gate_data["output_position"]
@@ -272,6 +273,7 @@ class Editor:
         node_fill_color = self.object_data["gates"]["node_fill"]
 
         output = self.diagram.create_image(0, 0, image = self.loaded_assets[title])
+        self.diagram.addtag_withtag("output_obj", output)
         self.diagram.tag_raise(output)
         self.objects.append(output)
 
@@ -281,6 +283,36 @@ class Editor:
         self.draw_node(input_coords, node_fill_color, "input0", output)
 
 
+    def update_edges(self):
+        """
+        Update edges to become blue if high signal is traveling through it.
+        """
+
+        high_nodes = []
+        node_data = self.circuit.graph.nodes(data=True)
+
+        for node in node_data:
+            id = node[0]
+            data = node[1]
+            if data["output"] == True:
+                high_nodes.append(id)
+
+        for edge in self.edges:
+            tags = self.diagram.gettags(edge)
+            for tag in tags:
+                if "start_gate" in tag:
+                    id = int(tag.replace("start_gate", ""))
+                    if id in high_nodes:
+                        self.diagram.itemconfig(edge, fill = "#00FF21")
+                    else:
+                        self.diagram.itemconfig(edge, fill = "#000000")
+                elif "end_gate" in tag:
+                    id = int(tag.replace("end_gate", ""))
+                    tags = self.diagram.gettags(id)
+                    if "output_obj" in tags:
+                        input = self.circuit.graph.nodes[id]["input"][0]
+                        self.lightbulb_changed(id, input)
+
     def button_press(self, event, id):
         """Handles mouse pressing down on button input object on the diagram"""
 
@@ -289,6 +321,7 @@ class Editor:
         self.diagram.itemconfig(id, image = pressed_asset)
         
         self.circuit.change_output(id, True)
+        self.update_edges()
 
 
     def button_release(self, event, id):
@@ -301,6 +334,7 @@ class Editor:
             self.diagram.dtag(id, "pressed")
 
             self.circuit.change_output(id, False)
+            self.update_edges()
 
 
     def switch_click(self, event, id):
@@ -317,6 +351,18 @@ class Editor:
             self.diagram.itemconfig(id, image = on_asset)
             self.diagram.addtag_withtag("on", id)
             self.circuit.change_output(id, True)
+        self.update_edges()
+
+
+    def lightbulb_changed(self, id, input):
+        """Handle changing the lightbulb asset"""
+
+        if input == False:
+            default_asset = self.loaded_assets["lightbulb"]
+            self.diagram.itemconfig(id, image = default_asset)
+        else:
+            changed_asset = self.loaded_assets["lightbulb_changed"]
+            self.diagram.itemconfig(id, image = changed_asset)
 
 
     def contains_xy(self, coords, x, y):
@@ -391,7 +437,7 @@ class Editor:
         self.state = self.check_grab_state(x, y)
 
         if(self.state == "object"):
-            #Set starting point of object drag
+            # Set starting point of object drag
             self.drag_x = x 
             self.drag_y = y
 
@@ -400,7 +446,7 @@ class Editor:
             self.diagram.scan_mark(event.x, event.y) #Doesn't need converted coordinates
 
         elif(self.state == "node"):
-            #Find center coords, start edge line
+            # Find center coords, start edge line
             c_x, c_y = self.find_center_coords(self.diagram.coords(self.grabbed_object))
             self.temp_edge = self.diagram.create_line(c_x, c_y, c_x, c_y, width = 5)
 
@@ -440,13 +486,12 @@ class Editor:
                     has_input = False
                     coords = self.diagram.coords(node)
 
-                    #Filters out nodes not being touched
+                    # Filters out nodes not being touched
                     if self.contains_xy(coords, x, y): 
                         if node != start_node:
                             new_node = True
 
                         tags = self.diagram.gettags(node)
-                        print(tags)
                         for tag in tags:
                             if "input" in tag:
                                 input_position = int(tag.replace("input", ""))
@@ -457,14 +502,12 @@ class Editor:
                             elif tag == "has_input":
                                 has_input = True
 
-                        print(new_node, new_obj, is_input, has_input)
                         if new_node and new_obj and is_input and not(has_input):
                             valid_edge = True
                             self.edges.append(edge)
 
                             # Add edge to circuit
                             self.circuit.add_edge(start_object_id, end_obj_id, input_position)
-                            print(self.circuit.graph.nodes(data=True))
 
                             # Adjust edge coords to final position
                             x0, y0 = self.find_center_coords(self.diagram.coords(self.grabbed_object))
@@ -476,7 +519,11 @@ class Editor:
                             end_tag = "end" + str(node)
                             self.diagram.addtag_withtag(start_tag, edge)
                             self.diagram.addtag_withtag(end_tag, edge)
+                            self.diagram.addtag_withtag("start_gate" + str(start_object_id), edge)
+                            self.diagram.addtag_withtag("end_gate" + str(end_obj_id), edge)
                             self.diagram.addtag_withtag("has_input", node)
+
+                            self.update_edges()
 
             if valid_edge == False:
                 self.diagram.delete(self.temp_edge)
