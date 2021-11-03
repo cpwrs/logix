@@ -6,6 +6,7 @@ The circuit class creates and controls a directed graph
 that represents the logix gate diagram in logix.
 """
 
+
 import networkx as nx
 
 
@@ -58,7 +59,7 @@ class Circuit:
 
         node = self.graph.nodes[id]
 
-        #Only apply logic if it has any (only gates do)
+        # Only apply logic if it has any (only gates do)
         if node["logic"]:
             # Set new input value
             node["input"][input_position] = input_value
@@ -91,4 +92,3 @@ class Circuit:
 
         self.graph.add_edge(start_id, end_id, position = position)
         self.update(start_id)
-        
