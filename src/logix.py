@@ -178,6 +178,16 @@ class Editor:
         self.frame.grid(row = 0, column = 1, sticky = "NSEW")
 
 
+    def adjust_coords(self, x, y, offset_coords):
+        """Returns array coords at offset_coords (x0, y0, x1, y1) offset by center coords (x,y)"""
+
+        x0, y0, x1, y1 = offset_coords
+        x0, x1 = x0 + x, x1 + x
+        y0, y1 = y0 + y, y1 + y
+
+        return [x0, y0, x1, y1]
+
+
     def draw_node(self, coords, color, type, object_id):
         """
         Create a node on the diagram and appropriately tag it.
@@ -215,7 +225,8 @@ class Editor:
         num_inputs = self.gate_data["gate_types"][title]
         node_fill_color = self.gate_data["node_fill"]
 
-        gate = self.diagram.create_image(0, 0, image = self.loaded_assets[title])
+        center_x, center_y = self.diagram.winfo_width()/2, self.diagram.winfo_height()/2
+        gate = self.diagram.create_image(center_x, center_y, image = self.loaded_assets[title])
         self.diagram.tag_raise(gate)
         self.objects.append(gate)
 
@@ -224,17 +235,20 @@ class Editor:
         # Create input nodes
         if num_inputs == 1:
             coords = self.gate_data["input_node_position"]
-            self.draw_node(coords, node_fill_color, "input0", gate, )
+            adjusted_coords = self.adjust_coords(center_x, center_y, coords)
+            self.draw_node(adjusted_coords, node_fill_color, "input0", gate)
         else:
             for i in range(num_inputs):
                 coords = self.gate_data["two_input_node_positions"][i]
-                self.draw_node(coords, node_fill_color, "input" + str(i), gate)
+                adjusted_coords = self.adjust_coords(center_x, center_y, coords)
+                self.draw_node(adjusted_coords, node_fill_color, "input" + str(i), gate)
 
                 # Create tags denoting if the input node is on top or bottom
         
         # Create output node
         coords = self.gate_data["output_position"]
-        self.draw_node(coords, node_fill_color, "output", gate)
+        adjusted_coords = self.adjust_coords(center_x, center_y, coords)
+        self.draw_node(adjusted_coords, node_fill_color, "output", gate)
 
 
     def draw_input(self, event):
@@ -246,7 +260,8 @@ class Editor:
         title = event.widget['text']
         node_fill_color = self.object_data["gates"]["node_fill"]
 
-        input = self.diagram.create_image(0, 0, image = self.loaded_assets[title])
+        center_x, center_y = self.diagram.winfo_width()/2, self.diagram.winfo_height()/2
+        input = self.diagram.create_image(center_x, center_y, image = self.loaded_assets[title])
         self.diagram.tag_raise(input)
         self.objects.append(input)
 
@@ -254,7 +269,8 @@ class Editor:
                               output = True if (title == "constant on") else False)
 
         output_coords = self.input_data[title]["output_position"]
-        self.draw_node(output_coords, node_fill_color, "output", input)
+        adjusted_output_coords = self.adjust_coords(center_x, center_y, output_coords)
+        self.draw_node(adjusted_output_coords, node_fill_color, "output", input)
 
         if title == "button":
             self.diagram.tag_bind(input, "<ButtonPress-1>", lambda event: self.button_press(event, input))
@@ -272,7 +288,8 @@ class Editor:
         title = event.widget['text']
         node_fill_color = self.object_data["gates"]["node_fill"]
 
-        output = self.diagram.create_image(0, 0, image = self.loaded_assets[title])
+        center_x, center_y = self.diagram.winfo_width()/2, self.diagram.winfo_height()/2
+        output = self.diagram.create_image(center_x, center_y, image = self.loaded_assets[title])
         self.diagram.addtag_withtag("output_obj", output)
         self.diagram.tag_raise(output)
         self.objects.append(output)
@@ -280,7 +297,8 @@ class Editor:
         self.circuit.add_node(output, 0, 1)
 
         input_coords = self.output_data[title]["input_position"]
-        self.draw_node(input_coords, node_fill_color, "input0", output)
+        adjusted_input_coords = self.adjust_coords(center_x, center_y, input_coords)
+        self.draw_node(adjusted_input_coords, node_fill_color, "input0", output)
 
 
     def update_edges(self):
