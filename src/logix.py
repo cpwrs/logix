@@ -11,6 +11,7 @@ and deploys modules to create and save logix circuits.
 import os 
 import json
 import tkinter as tk
+from enum import Enum
 from circuit import Circuit
 from tkinter import ttk
 from ttkthemes import ThemedStyle
@@ -45,15 +46,49 @@ class Home:
 class Editor:
     """A class to represent the main logix editor."""
 
+    #Constants
+    DIMENSIONS = "750x750"
+    HIGH_COLOR = "#00FF21"
+    LOW_COLOR = "#000000"
+
+
+    #Create a circuit for this instance of the editor
+    circuit = Circuit()
+
+    # Load data regarding the object names and assets from json file
+    object_data = json.load(open("src/objects.json"))
+    gate_data = object_data["gates"]
+    input_data = object_data["inputs"]
+    output_data = object_data["outputs"]
+
+    # Below tables hold different objects in the editors diagram
+    # Create dictionary loaded_assets to hold loaded image for each type of object
+    # *Avoids garbage collection and helps to reference tag names*
+    objects = []
+    nodes = []
+    edges = []
+    loaded_assets = {} # key = title, value = asset
+
+    # Create variables to control the state of diagram actions
+    state = None # State of object grabbed (node, object, or canvas)
+    grabbed_object = None
+    temp_edge = None
+
+
+    class GrabState(Enum):
+        CANVAS = 1
+        OBJECT = 2
+        NODE = 3
+
+
     def __init__(self, root, window):
         """Construct the sidebar and diagram and their respective widgets."""
 
         self.window = window
         self.root = root
-        self.circuit = Circuit()
 
-        # Create window of size 750x750
-        self.window.geometry("750x750")
+        # Create window of size DIMENSIONS
+        self.window.geometry(self.DIMENSIONS)
         self.window.configure(background="#181818")
 
         # Add styling to window (for ttk widgets)
@@ -80,25 +115,6 @@ class Editor:
         self.edit_menu = tk.Menu(self.menu)
         self.menu.add_cascade(label = "File", menu = self.file_menu)
         self.menu.add_cascade(label = "Edit", menu = self.edit_menu)
-
-        # Load data regarding the object names and assets from json file
-        self.object_data = json.load(open("src/objects.json"))
-        self.gate_data = self.object_data["gates"]
-        self.input_data = self.object_data["inputs"]
-        self.output_data = self.object_data["outputs"]
-        
-        # Create table to hold each tk button, create table to hold objects
-        # Create dictionary loaded_assets to hold loaded image for each type of object
-        # *Avoids garbage collection and helps to reference tag names*
-        self.objects = []
-        self.nodes = []
-        self.edges = []
-        self.loaded_assets = {} # key = title, value = asset
-
-        # Create variables to control the state of diagram actions
-        self.state = False # State of object grabbed (node, object, or canvas)
-        self.grabbed_object = False
-        self.temp_edge = False
 
         # Load object asset and create button
         # Start by loading gate objects
@@ -321,9 +337,9 @@ class Editor:
                 if "start_gate" in tag:
                     id = int(tag.replace("start_gate", ""))
                     if id in high_nodes:
-                        self.diagram.itemconfig(edge, fill = "#00FF21")
+                        self.diagram.itemconfig(edge, fill = self.HIGH_COLOR)
                     else:
-                        self.diagram.itemconfig(edge, fill = "#000000")
+                        self.diagram.itemconfig(edge, fill = self.LOW_COLOR)
                 elif "end_gate" in tag:
                     id = int(tag.replace("end_gate", ""))
                     tags = self.diagram.gettags(id)
@@ -416,7 +432,7 @@ class Editor:
         
         RETURNS
         -------
-        state : If (x,y) was within coordinates bounding an object, node, or diagram
+        GrabState : If (x,y) was within coordinates bounding an object, node, or diagram
         """
         # Loop through nodes, newest to oldest
         for node in reversed(self.nodes):
@@ -427,7 +443,7 @@ class Editor:
             
             if touched and output:
                 self.grabbed_object = node
-                return("node")
+                return(self.GrabState.NODE)
 
         # Loop through each objects, newest to oldest
         for object in reversed(self.objects):
@@ -436,10 +452,10 @@ class Editor:
             for tag in tags:
                 if tag == "current":
                     self.grabbed_object = object
-                    return("object")
+                    return(self.GrabState.OBJECT)
 
         # If not grabbing a node or object, return state canvas
-        return("canvas")
+        return(self.GrabState.CANVAS)
 
 
     def down_handler(self, event):
@@ -454,16 +470,16 @@ class Editor:
         # Set state of mouse grab
         self.state = self.check_grab_state(x, y)
 
-        if(self.state == "object"):
+        if(self.state == self.GrabState.OBJECT):
             # Set starting point of object drag
             self.drag_x = x 
             self.drag_y = y
 
-        elif(self.state == "canvas"):
+        elif(self.state == self.GrabState.CANVAS):
             # Set starting point of canvas pan
             self.diagram.scan_mark(event.x, event.y) #Doesn't need converted coordinates
 
-        elif(self.state == "node"):
+        elif(self.state == self.GrabState.NODE):
             # Find center coords, start edge line
             c_x, c_y = self.find_center_coords(self.diagram.coords(self.grabbed_object))
             self.temp_edge = self.diagram.create_line(c_x, c_y, c_x, c_y, width = 5)
@@ -479,7 +495,7 @@ class Editor:
         x = int(self.diagram.canvasx(event.x))
         y = int(self.diagram.canvasy(event.y))
 
-        if self.state == "node":
+        if self.state == self.GrabState.NODE:
             # Check if a valid edge was drawn, complete edge
             valid_edge = False
             edge = self.temp_edge
@@ -511,7 +527,7 @@ class Editor:
 
                         tags = self.diagram.gettags(node)
                         for tag in tags:
-                            if "input" in tag:
+                            if tag[0:5] == "input":
                                 input_position = int(tag.replace("input", ""))
                                 is_input = True
                             elif ("object" in tag) and (int(tag.replace("object", "")) != start_object_id):
@@ -547,9 +563,9 @@ class Editor:
                 self.diagram.delete(self.temp_edge)
                             
         # Reset grab variables
-        self.object_grabbed = False
-        self.temp_edge = False
-        self.state = False
+        self.object_grabbed = None
+        self.temp_edge = None
+        self.state = None
 
         
     def move_handler(self, event):
@@ -562,7 +578,7 @@ class Editor:
         x = int(self.diagram.canvasx(event.x))
         y = int(self.diagram.canvasy(event.y))
 
-        if(self.state == "object"):
+        if(self.state == self.GrabState.OBJECT):
             # Calculate distance moved
             diff_x = x - self.drag_x
             diff_y = y - self.drag_y
@@ -587,11 +603,11 @@ class Editor:
                     x0, y0, x1, y1 = self.diagram.coords(edge)
                     self.diagram.coords(edge, x0, y0, x1 + diff_x, y1 + diff_y)
 
-        elif(self.state == "canvas"):
+        elif(self.state == self.GrabState.CANVAS):
             # Pan diagram
             self.diagram.scan_dragto(event.x, event.y, gain=1)
 
-        elif(self.state == "node"):
+        elif(self.state == self.GrabState.NODE):
             # Find original x, y
             x0, y0 = self.find_center_coords(self.diagram.coords(self.grabbed_object))
             # Update line coords
