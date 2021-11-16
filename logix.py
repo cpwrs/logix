@@ -1,6 +1,6 @@
 
 """
-Logix
+logix.py
 Author: Carson Powers
 
 Displays the user interface of logix using tkinter
@@ -8,12 +8,13 @@ and deploys modules to create and save logix circuits.
 """
 
 
-import os 
+from src.circuit import Circuit
+import src.resource as resource
+
 import json
 import tkinter as tk
-from enum import Enum
-from circuit import Circuit
 from tkinter import ttk
+from enum import Enum
 from ttkthemes import ThemedStyle
 from PIL import ImageTk, Image
 
@@ -26,10 +27,11 @@ class Home:
 
         self.window = window
         self.root = root
+        self.window.title("Logix")
 
         # Create main frame, button to open editor (new project)
-        self.frame = tk.Frame(self.window)
-        self.open_button = tk.Button(self.frame, text = 'Open Editor', height = 1, width = 25, command = self.open_editor)
+        self.frame = ttk.Frame(self.window)
+        self.open_button = ttk.Button(self.frame, text = 'Open Editor', width = 25, command = self.open_editor)
 
         # Add frame and button to Home window
         self.open_button.pack()
@@ -48,33 +50,31 @@ class Editor:
 
     #Constants
     DIMENSIONS = "750x750"
+    BG_COLOR = "#181818"
+    CANVAS_COLOR = "#404040"
     HIGH_COLOR = "#00FF21"
     LOW_COLOR = "#000000"
-
 
     #Create a circuit for this instance of the editor
     circuit = Circuit()
 
     # Load data regarding the object names and assets from json file
-    object_data = json.load(open("src/objects.json"))
+    object_data = json.load(open(resource.path("src/objects.json")))
     gate_data = object_data["gates"]
     input_data = object_data["inputs"]
     output_data = object_data["outputs"]
 
-    # Below tables hold different objects in the editors diagram
-    # Create dictionary loaded_assets to hold loaded image for each type of object
-    # *Avoids garbage collection and helps to reference tag names*
     objects = []
     nodes = []
     edges = []
+    # *Avoids garbage collection and helps to reference tag names*
     loaded_assets = {} # key = title, value = asset
 
-    # Create variables to control the state of diagram actions
-    state = None # State of object grabbed (node, object, or canvas)
+    state = None
     grabbed_object = None
     temp_edge = None
 
-
+    #Enum for state variable (which type of object is being grabbed currently)
     class GrabState(Enum):
         CANVAS = 1
         OBJECT = 2
@@ -89,7 +89,8 @@ class Editor:
 
         # Create window of size DIMENSIONS
         self.window.geometry(self.DIMENSIONS)
-        self.window.configure(background="#181818")
+        self.window.title("Logix - Editor")
+        self.window.configure(background = self.BG_COLOR)
 
         # Add styling to window (for ttk widgets)
         style = ThemedStyle(self.window)
@@ -105,23 +106,14 @@ class Editor:
         self.output_buttons = []
 
         self.frame = ttk.LabelFrame(self.window, text="Diagram", padding = 2)
-        self.diagram = tk.Canvas(self.frame, bg = "#404040")
-        
-        # Create menu widget with themed menubuttons
-        # TODO: Add cascade options and functionality
-        self.menu = tk.Menu(self.window)
-        self.window.config(menu = self.menu)
-        self.file_menu = tk.Menu(self.menu)
-        self.edit_menu = tk.Menu(self.menu)
-        self.menu.add_cascade(label = "File", menu = self.file_menu)
-        self.menu.add_cascade(label = "Edit", menu = self.edit_menu)
+        self.diagram = tk.Canvas(self.frame, bg = self.CANVAS_COLOR)
 
         # Load object asset and create button
         # Start by loading gate objects
         gate_dimensions = self.gate_data["dimensions"]
         for title in self.object_data["gates"]["gate_types"]:
             filename = "assets/" + title + ".png"
-            asset = ImageTk.PhotoImage(Image.open(filename).resize(gate_dimensions))
+            asset = ImageTk.PhotoImage(Image.open(resource.path(filename)).resize(gate_dimensions))
             self.loaded_assets[title] = asset
 
             button = ttk.Button(self.gate_frame, text = title, width = 10)
@@ -132,12 +124,12 @@ class Editor:
         for input in self.input_data:
             default_filename = self.input_data[input]["default_asset"]
             dimensions = self.input_data[input]["dimensions"]
-            asset = ImageTk.PhotoImage(Image.open(default_filename).resize(dimensions))
+            asset = ImageTk.PhotoImage(Image.open(resource.path(default_filename)).resize(dimensions))
             self.loaded_assets[input] = asset
 
             if self.input_data[input].get("changed_asset"):
                 changed_filename = self.input_data[input]["changed_asset"]
-                asset = ImageTk.PhotoImage(Image.open(changed_filename).resize(dimensions))
+                asset = ImageTk.PhotoImage(Image.open(resource.path(changed_filename)).resize(dimensions))
                 self.loaded_assets[(input + "_changed")] = asset
 
             button = ttk.Button(self.input_frame, text = input, width = 10)
@@ -148,11 +140,11 @@ class Editor:
         for output in self.output_data:
             default_filename = self.output_data[output]["default_asset"]
             dimensions = self.output_data[output]["dimensions"]
-            asset = ImageTk.PhotoImage(Image.open(default_filename).resize(dimensions))
+            asset = ImageTk.PhotoImage(Image.open(resource.path(default_filename)).resize(dimensions))
             self.loaded_assets[output] = asset
 
             changed_filename = self.output_data[output]["changed_asset"]
-            asset = ImageTk.PhotoImage(Image.open(changed_filename).resize(dimensions))
+            asset = ImageTk.PhotoImage(Image.open(resource.path(changed_filename)).resize(dimensions))
             self.loaded_assets[(output + "_changed")] = asset
 
             button =  ttk.Button(self.output_frame, text = output, width = 10)
@@ -346,6 +338,7 @@ class Editor:
                     if "output_obj" in tags:
                         input = self.circuit.graph.nodes[id]["input"][0]
                         self.lightbulb_changed(id, input)
+
 
     def button_press(self, event, id):
         """Handles mouse pressing down on button input object on the diagram"""
