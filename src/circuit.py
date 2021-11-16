@@ -82,6 +82,7 @@ class Circuit:
         """
 
         self.graph.add_node(id, logic = logic, input = [False] * num_inputs, output = output)
+        self.update(id)
     
 
     def add_edge(self, start_id, end_id, position):
