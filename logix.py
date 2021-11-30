@@ -636,7 +636,7 @@ class Editor:
 
     def on_close(self):
         """Close the program when the exit button is pressed"""
-        
+
         self.window.destroy()
         sys.exit()
 
