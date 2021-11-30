@@ -11,9 +11,8 @@ Logix is free software that gives you an intuitive editor to switly build and te
 
 
 # How to Use
-Check out releases to download the most recent logix executable for your platform (currently doesn't support macOS)
-<h3>Download <a href="/crpowers/logix/releases/download/logix_ubuntu">Logix for Ubuntu 20.04</a></h3>
-<h3>Download <a href="/crpowers/logix/releases/download/logix_windows.exe">Logix for Windows</a></h3>
+### Releases contain the most recent logix executable ready to download for your platform (currently doesn't support macOS).
+### Check out the latest [Logix Release](https://github.com/crpowers/logix/releases/tag/v1.0.0)
 
 #
 Example: A full adder circuit diagram drawn in logix
