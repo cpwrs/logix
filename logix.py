@@ -11,6 +11,7 @@ and deploys modules to create and save logix circuits.
 from src.circuit import Circuit
 import src.resource as resource
 
+import sys
 import json
 import tkinter as tk
 from tkinter import ttk
@@ -18,6 +19,7 @@ from enum import Enum
 from ttkthemes import ThemedStyle
 from PIL import ImageTk, Image
 
+THEME_NAME = "equilux"
 
 class Home:
     """A class to represent the home window of the logix application."""
@@ -29,13 +31,22 @@ class Home:
         self.root = root
         self.window.title("Logix")
 
+        self.window.protocol("WM_DELETE_WINDOW", self.on_close)
+
+        style = ThemedStyle(self.window)
+        style.set_theme(THEME_NAME)
+
         # Create main frame, button to open editor (new project)
         self.frame = ttk.Frame(self.window)
-        self.open_button = ttk.Button(self.frame, text = 'Open Editor', width = 25, command = self.open_editor)
+        self.title = ttk.Label(self.frame, text = "Welcome to Logix", padding = 10)
+        self.title.config(font=("Courier", 30))
+        self.open_button = ttk.Button(self.frame, text = 'Open Editor', width = 25, padding = 5, command = self.open_editor)
 
         # Add frame and button to Home window
-        self.open_button.pack()
+        self.open_button.pack(side = tk.BOTTOM)
+        self.title.pack(side = tk.TOP)
         self.frame.pack()
+
 
     def open_editor(self):
         """Close the home window, open a new window, and instantiate the Editor class."""
@@ -44,6 +55,11 @@ class Home:
         self.newWindow = tk.Toplevel(self.root)
         self.app = Editor(self.root, self.newWindow)
 
+    def on_close(self):
+        """Close the program when the exit button is pressed"""
+
+        self.window.destroy()
+        sys.exit()
 
 class Editor:
     """A class to represent the main logix editor."""
@@ -87,6 +103,8 @@ class Editor:
         self.window = window
         self.root = root
 
+        self.window.protocol("WM_DELETE_WINDOW", self.on_close)
+
         # Create window of size DIMENSIONS
         self.window.geometry(self.DIMENSIONS)
         self.window.title("Logix - Editor")
@@ -94,7 +112,7 @@ class Editor:
 
         # Add styling to window (for ttk widgets)
         style = ThemedStyle(self.window)
-        style.set_theme("equilux")
+        style.set_theme(THEME_NAME)
 
         # Create Sidebar and Diagram widgets (Frame just holds the Canvas inside it)
         self.sidebar = ttk.LabelFrame(self.window, text = "Objects", padding = 4)
@@ -614,7 +632,14 @@ class Editor:
         y = self.diagram.canvasy(event.y)
         factor = 1.001 ** event.delta
         self.diagram.scale(tk.ALL, x, y, factor, factor)
+
+
+    def on_close(self):
+        """Close the program when the exit button is pressed"""
         
+        self.window.destroy()
+        sys.exit()
+
 
 def main():
     root = tk.Tk()
