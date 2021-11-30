@@ -5,8 +5,18 @@
 <p></p>
 Wanting to learn more about circuits and use an interactive tool to create logic diagrams?
 Logix is free software that gives you an intuitive editor to switly build and test circuits and futher your knowledge of electronic computation.
-<p></p>
+
+
+<br/><br/>
+
+
+# How to Use
+Check out releases to download the most recent logix executable for your platform (currently doesn't support macOS)
+<h3>Download <a href="/crpowers/logix/releases/download/logix_ubuntu">Logix for Ubuntu 20.04</a></h3>
+<h3>Download <a href="/crpowers/logix/releases/download/logix_windows.exe">Logix for Windows</a></h3>
+
+#
 Example: A full adder circuit diagram drawn in logix
 <img src="assets/screenshot.png">
 
-<h3>How to Install</h3>
+❤️
