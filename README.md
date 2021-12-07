@@ -6,14 +6,6 @@
 Wanting to learn more about circuits and use an interactive tool to create logic diagrams?
 Logix is free software that gives you an intuitive editor to switly build and test circuits and futher your knowledge of electronic computation.
 
-
-<br/><br/>
-
-
-# How to Use
-### Releases contain the most recent logix executable ready to download for your platform (currently doesn't support macOS).
-### Check out the latest [Logix Release](https://github.com/crpowers/logix/releases/tag/v1.0.0)
-
 #
 Example: A full adder circuit diagram drawn in logix
 <img src="assets/screenshot.png">
