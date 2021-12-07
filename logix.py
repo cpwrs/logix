@@ -21,6 +21,8 @@ from PIL import ImageTk, Image
 
 THEME_NAME = "equilux"
 
+
+
 class Home:
     """A class to represent the home window of the logix application."""
     
@@ -45,7 +47,7 @@ class Home:
         # Add frame and button to Home window
         self.open_button.pack(side = tk.BOTTOM)
         self.title.pack(side = tk.TOP)
-        self.frame.pack()
+        self.frame.pack(fill="both", expand=True)
 
 
     def open_editor(self):
@@ -55,11 +57,14 @@ class Home:
         self.newWindow = tk.Toplevel(self.root)
         self.app = Editor(self.root, self.newWindow)
 
+
     def on_close(self):
         """Close the program when the exit button is pressed"""
 
         self.window.destroy()
         sys.exit()
+
+
 
 class Editor:
     """A class to represent the main logix editor."""
@@ -329,7 +334,7 @@ class Editor:
 
     def update_edges(self):
         """
-        Update edges to become blue if high signal is traveling through it.
+        Update edges to become green if high signal is traveling through it.
         """
 
         high_nodes = []
